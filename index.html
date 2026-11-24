@@ -101,6 +101,7 @@
     .score strong { color: var(--ink); }
     .progress { height: 7px; margin: 11px 0 27px; overflow: hidden; border-radius: 20px; background: var(--border); }
     .progress-fill { width: 0; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #8764e7, #d69bdc); transition: width .35s ease; }
+    .mode-description { margin: -12px 0 18px; color: var(--muted); font-size: 13px; }
     .question-label { color: var(--purple); font-size: 10px; font-weight: 850; letter-spacing: .15em; }
     h2 { margin: 8px 0 20px; font-size: clamp(19px, 4vw, 22px); line-height: 1.55; letter-spacing: .01em; }
     .answers { display: flex; flex-direction: column; gap: 10px; }
@@ -194,7 +195,7 @@
         <div class="hero-copy">
           <div class="eyebrow">READY FOR LIFTOFF?</div>
           <h1 id="page-title">宇宙のふしぎに、<br>出発しよう。</h1>
-          <p>10の質問で、宇宙をめぐる小さな旅へ。</p>
+          <p>3問または10問で、宇宙をめぐる小さな旅へ。</p>
         </div>
         <div class="hero-art" aria-hidden="true">
           <div class="orbit"></div><div class="planet"></div>
@@ -202,14 +203,22 @@
         </div>
       </div>
       <div class="body">
-        <div class="status">
-          <span id="progress-label">QUESTION <strong>01</strong> / 10</span>
-          <span class="score">✦ &nbsp; SCORE <strong id="score">0</strong></span>
+        <div id="mode-selection" role="group" aria-labelledby="mode-title" aria-describedby="mode-description">
+          <h2 id="mode-title">チャレンジを選ぼう</h2>
+          <p id="mode-description" class="mode-description">問題数を選んで、宇宙探査を始めましょう。</p>
+          <button class="next" id="start-standard" type="button">10問で挑戦</button>
+          <button class="next" id="start-quick" type="button">3問のクイックチャレンジ</button>
         </div>
-        <div class="progress" id="progress" role="progressbar" aria-label="回答の進捗" aria-valuemin="0" aria-valuemax="10" aria-valuenow="0">
-          <div class="progress-fill" id="progress-fill"></div>
+        <div id="quiz-status" hidden>
+          <div class="status">
+            <span id="progress-label">QUESTION <strong>01</strong> / 10</span>
+            <span class="score">✦ &nbsp; SCORE <strong id="score">0</strong></span>
+          </div>
+          <div class="progress" id="progress" role="progressbar" aria-label="回答の進捗" aria-valuemin="0" aria-valuemax="10" aria-valuenow="0">
+            <div class="progress-fill" id="progress-fill"></div>
+          </div>
         </div>
-        <div id="quiz">
+        <div id="quiz" hidden>
           <div class="question-label" id="question-label"></div>
           <h2 id="question"></h2>
           <div class="answers" id="answers"></div>
@@ -225,7 +234,7 @@
           <span class="question-label">MISSION COMPLETE</span>
           <h2 id="result-title"></h2>
           <p id="result-message"></p>
-          <div class="result-score"><span>正解数 </span><span id="result-score" style="font-size: inherit; color: inherit"></span><span> / 10</span></div>
+          <div class="result-score"><span>正解数 </span><span id="result-score" style="font-size: inherit; color: inherit"></span><span> / <span id="result-total">10</span></span></div>
           <button class="next" id="restart" type="button">もう一度挑戦する <span aria-hidden="true">↗</span></button>
         </div>
       </div>
@@ -247,22 +256,23 @@
     ];
 
     const $ = id => document.getElementById(id);
+    let activeQuestions = questions;
     let current = 0;
     let score = 0;
     let answered = false;
 
     function updateStatus(completed) {
       $("score").textContent = score;
-      $("progress-fill").style.width = `${completed / questions.length * 100}%`;
+      $("progress-fill").style.width = `${completed / activeQuestions.length * 100}%`;
       $("progress").setAttribute("aria-valuenow", completed);
     }
 
     function renderQuestion() {
       answered = false;
-      const item = questions[current];
+      const item = activeQuestions[current];
       const number = String(current + 1).padStart(2, "0");
-      $("progress-label").innerHTML = `QUESTION <strong>${number}</strong> / ${questions.length}`;
-      $("question-label").textContent = `QUESTION ${number}  /  ${questions.length}`;
+      $("progress-label").innerHTML = `QUESTION <strong>${number}</strong> / ${activeQuestions.length}`;
+      $("question-label").textContent = `QUESTION ${number}  /  ${activeQuestions.length}`;
       $("question").textContent = item.question;
       $("answers").replaceChildren();
       $("feedback").hidden = true;
@@ -284,10 +294,23 @@
       updateStatus(current);
     }
 
+    function startQuiz(questionSet) {
+      activeQuestions = questionSet;
+      current = 0;
+      score = 0;
+      $("mode-selection").hidden = true;
+      $("quiz-status").hidden = false;
+      $("quiz").hidden = false;
+      $("progress").setAttribute("aria-valuemax", activeQuestions.length);
+      $("result-total").textContent = activeQuestions.length;
+      renderQuestion();
+      $("answers").querySelector("button").focus();
+    }
+
     function selectAnswer(selected) {
       if (answered) return;
       answered = true;
-      const item = questions[current];
+      const item = activeQuestions[current];
       const correct = selected === item.answer;
       if (correct) score++;
       const buttons = $("answers").querySelectorAll("button");
@@ -313,7 +336,7 @@
       explanation.textContent = item.explanation;
       feedback.append(heading, explanation);
       feedback.hidden = false;
-      $("next").textContent = current === questions.length - 1 ? "結果を見る →" : "次の問題へ →";
+      $("next").textContent = current === activeQuestions.length - 1 ? "結果を見る →" : "次の問題へ →";
       $("next").hidden = false;
       updateStatus(current + 1);
     }
@@ -321,23 +344,30 @@
     $("next").addEventListener("click", () => {
       if (!answered) return;
       current++;
-      if (current < questions.length) {
+      if (current < activeQuestions.length) {
         renderQuestion();
       } else {
         $("quiz").hidden = true;
         $("result").hidden = false;
-        const highScore = score >= 8;
+        const scoreRatio = score / activeQuestions.length;
+        const highScore = scoreRatio >= 0.8;
         $("result").classList.toggle("celebration", highScore);
         $("celebration-stars").hidden = !highScore;
         $("result-badge").hidden = !highScore;
         $("progress-label").textContent = "ALL QUESTIONS COMPLETE";
         $("result-score").textContent = score;
-        $("result-emoji").textContent = score === 10 ? "🏆" : score >= 7 ? "🚀" : score >= 4 ? "🌟" : "🌱";
-        $("result-title").textContent = score === 10 ? "パーフェクト！" : score >= 7 ? "すばらしい探査！" : score >= 4 ? "ナイスチャレンジ！" : "宇宙の旅はこれから！";
-        $("result-message").textContent = score === 10 ? "あなたは宇宙探査のエキスパート！" : highScore ? "見事な活躍！宇宙への好奇心が輝いています。" : "宇宙には、まだまだたくさんの発見が待っています。";
+        const perfectScore = score === activeQuestions.length;
+        const goodScore = scoreRatio >= 0.7;
+        const decentScore = scoreRatio >= 0.4;
+        $("result-emoji").textContent = perfectScore ? "🏆" : goodScore ? "🚀" : decentScore ? "🌟" : "🌱";
+        $("result-title").textContent = perfectScore ? "パーフェクト！" : goodScore ? "すばらしい探査！" : decentScore ? "ナイスチャレンジ！" : "宇宙の旅はこれから！";
+        $("result-message").textContent = perfectScore ? "あなたは宇宙探査のエキスパート！" : highScore ? "見事な活躍！宇宙への好奇心が輝いています。" : "宇宙には、まだまだたくさんの発見が待っています。";
         $("restart").focus();
       }
     });
+
+    $("start-standard").addEventListener("click", () => startQuiz(questions));
+    $("start-quick").addEventListener("click", () => startQuiz(questions.slice(0, 3)));
 
     $("restart").addEventListener("click", () => {
       current = 0;
