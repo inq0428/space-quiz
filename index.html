@@ -1,0 +1,354 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light dark">
+  <title>SPACE QUEST — 宇宙探査クイズ</title>
+  <style>
+    :root {
+      color-scheme: light dark;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "Hiragino Kaku Gothic ProN", "Noto Sans JP", sans-serif;
+      font-size: 15px;
+      --page: #f5f2fb;
+      --surface: #fff;
+      --ink: #24213c;
+      --muted: #827e95;
+      --border: #ebe8f1;
+      --choice: #fff;
+      --choice-hover: #f8f6ff;
+      --purple: #7657d5;
+      --green: #178861;
+      --green-bg: #e8f8ef;
+      --red: #c94d5e;
+      --red-bg: #fff0f2;
+      --shadow: 0 24px 70px rgba(48, 36, 82, .09);
+      --star-color: rgba(112, 82, 166, .28);
+      --star-glow: rgba(112, 82, 166, .12);
+    }
+    @media (prefers-color-scheme: dark) {
+      :root {
+        --page: #151321;
+        --surface: #222032;
+        --ink: #f4f1ff;
+        --muted: #a7a1bb;
+        --border: #3a374c;
+        --choice: #29263a;
+        --choice-hover: #35304b;
+        --purple: #b69bff;
+        --green: #77dfb0;
+        --green-bg: #1d4439;
+        --red: #ff9aa7;
+        --red-bg: #522c3a;
+        --shadow: 0 24px 70px rgba(0, 0, 0, .22);
+        --star-color: rgba(225, 214, 255, .45);
+        --star-glow: rgba(183, 162, 240, .24);
+      }
+    }
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--page);
+      color: var(--ink);
+      line-height: 1.65;
+    }
+    body::before {
+      content: "";
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      background-image:
+        radial-gradient(circle, var(--star-color) 1px, transparent 1.5px),
+        radial-gradient(circle, var(--star-glow) 1.5px, transparent 2px),
+        radial-gradient(circle, var(--star-color) 1px, transparent 1.5px);
+      background-size: 173px 193px, 257px 229px, 311px 281px;
+      background-position: 23px 37px, 97px 63px, 41px 121px;
+    }
+    @media (prefers-reduced-motion: no-preference) {
+      body::before { animation: star-twinkle 8s ease-in-out infinite alternate; }
+    }
+    button { font: inherit; }
+    button:focus-visible { outline: 3px solid #a68aff; outline-offset: 3px; }
+    .page { position: relative; width: min(100% - 32px, 600px); margin: 0 auto; padding: 36px 0 28px; }
+    .topbar { display: flex; align-items: center; justify-content: space-between; margin-bottom: 23px; }
+    .brand { display: flex; align-items: center; gap: 9px; font-size: 12px; font-weight: 850; letter-spacing: .14em; }
+    .brand-icon { display: grid; place-items: center; width: 30px; height: 30px; border-radius: 10px; color: white; background: #7657d5; font-size: 16px; }
+    .edition { color: var(--muted); font-size: 11px; font-weight: 700; letter-spacing: .07em; }
+    .card { overflow: hidden; border: 1px solid var(--border); border-radius: 22px; background: var(--surface); box-shadow: var(--shadow); }
+    .hero {
+      position: relative; overflow: hidden; min-height: 194px; padding: 29px 32px;
+      color: #fff; background: linear-gradient(120deg, #292052 0%, #44316f 58%, #7652a4 100%);
+    }
+    .hero-copy { position: relative; z-index: 2; max-width: 290px; }
+    .eyebrow { display: inline-flex; align-items: center; gap: 7px; color: #e5d7ff; font-size: 10px; font-weight: 800; letter-spacing: .15em; }
+    .eyebrow::before { content: ""; width: 7px; height: 7px; border-radius: 50%; background: #ffc98c; }
+    .hero h1 { margin: 12px 0 5px; font-size: clamp(24px, 5vw, 30px); line-height: 1.35; letter-spacing: .025em; }
+    .hero p { margin: 0; color: #dbd3ee; font-size: 12px; }
+    .hero-art { position: absolute; right: 12px; top: 0; width: 230px; height: 194px; pointer-events: none; }
+    .planet { position: absolute; right: 32px; top: 43px; width: 102px; height: 102px; border-radius: 50%; background: linear-gradient(145deg, #ffd6aa, #ed91a3 68%, #c977a8); box-shadow: inset -12px -10px 0 rgba(150, 73, 130, .14), 0 0 45px rgba(241, 161, 197, .2); }
+    .planet::after { content: ""; position: absolute; left: -31px; top: 41px; width: 160px; height: 35px; border: 5px solid #f6c4ca; border-top-color: transparent; border-radius: 50%; transform: rotate(-20deg); }
+    .orbit { position: absolute; right: -25px; top: -50px; width: 245px; height: 245px; border: 1px solid rgba(255,255,255,.13); border-radius: 50%; }
+    .orbit::after { content: ""; position: absolute; left: 18px; top: 53px; width: 7px; height: 7px; border-radius: 50%; background: #ffcb9b; box-shadow: 0 0 12px #ffcb9b; }
+    .star { position: absolute; color: #fff; font-size: 15px; }
+    .star.one { top: 32px; right: 184px; color: #fbd4b2; }
+    .star.two { top: 128px; right: 176px; font-size: 10px; }
+    .star.three { top: 24px; right: 29px; font-size: 10px; color: #fbd4b2; }
+    .body { padding: 27px 32px 32px; }
+    .status { display: flex; align-items: center; justify-content: space-between; gap: 12px; font-size: 12px; font-weight: 700; }
+    .status strong { color: var(--purple); }
+    .score { color: var(--muted); }
+    .score strong { color: var(--ink); }
+    .progress { height: 7px; margin: 11px 0 27px; overflow: hidden; border-radius: 20px; background: var(--border); }
+    .progress-fill { width: 0; height: 100%; border-radius: inherit; background: linear-gradient(90deg, #8764e7, #d69bdc); transition: width .35s ease; }
+    .question-label { color: var(--purple); font-size: 10px; font-weight: 850; letter-spacing: .15em; }
+    h2 { margin: 8px 0 20px; font-size: clamp(19px, 4vw, 22px); line-height: 1.55; letter-spacing: .01em; }
+    .answers { display: flex; flex-direction: column; gap: 10px; }
+    .answer {
+      display: flex; align-items: center; gap: 13px; width: 100%; min-height: 55px;
+      padding: 10px 14px; border: 1px solid var(--border); border-radius: 12px;
+      background: var(--choice); color: var(--ink); text-align: left; cursor: pointer;
+      transition: border-color .2s, background .2s, transform .2s;
+    }
+    .answer:hover:not(:disabled) { transform: translateY(-2px); border-color: #b4a1ea; background: var(--choice-hover); }
+    .answer:disabled { cursor: default; opacity: 1; }
+    .answer-letter { display: grid; flex: 0 0 29px; height: 29px; place-items: center; border-radius: 8px; background: var(--page); color: var(--muted); font-size: 11px; font-weight: 800; }
+    .answer-text { flex: 1; font-weight: 650; }
+    .answer-mark { font-weight: 900; }
+    .answer.correct { border-color: var(--green); color: var(--green); background: var(--green-bg); animation: celebrate .45s ease both; }
+    .answer.incorrect { border-color: var(--red); color: var(--red); background: var(--red-bg); animation: shake .42s ease both; }
+    .answer.selected {
+      color: var(--ink);
+      border-radius: 4px;
+      background-image: repeating-linear-gradient(0deg, transparent 0 3px, rgba(128, 128, 128, .06) 3px 4px);
+    }
+    .answer.correct.selected { box-shadow: inset 4px 0 var(--green); }
+    .answer.incorrect.selected { box-shadow: inset 4px 0 var(--red); }
+    .answer.selected .answer-letter {
+      border: 1px solid currentColor;
+      border-radius: 2px;
+      background: transparent;
+      color: inherit;
+    }
+    .answer.selected .answer-mark {
+      display: grid; width: 25px; height: 25px; place-items: center;
+      border: 1px solid currentColor; border-radius: 2px;
+    }
+    .feedback { margin-top: 16px; padding: 13px 15px; border-radius: 12px; font-size: 13px; }
+    .feedback.correct { color: var(--green); background: var(--green-bg); }
+    .feedback.incorrect { color: var(--red); background: var(--red-bg); }
+    .feedback strong { display: block; font-size: 14px; }
+    .feedback p { margin: 3px 0 0; }
+    .next { display: block; width: 100%; margin-top: 16px; padding: 13px; border: 0; border-radius: 12px; background: #7657d5; color: white; font-weight: 800; cursor: pointer; transition: background .2s, transform .2s; }
+    .next:hover { background: #6444c3; transform: translateY(-2px); }
+    .result { padding: 13px 0 0; text-align: center; }
+    .result-emoji { font-size: 62px; line-height: 1.2; animation: celebrate .6s ease both; }
+    .result .question-label { display: block; margin-top: 16px; }
+    .result h2 { margin: 8px 0; font-size: 25px; }
+    .result p { margin: 0; color: var(--muted); }
+    .result-score { margin: 19px 0; color: var(--purple); font-size: 42px; font-weight: 850; line-height: 1; }
+    .result-score span { color: var(--muted); font-size: 16px; }
+    .result.celebration {
+      position: relative; overflow: hidden; padding: 22px 18px 18px;
+      border: 1px solid var(--border); border-radius: 18px;
+      background: radial-gradient(ellipse at 50% 0, var(--star-glow), transparent 65%);
+    }
+    .celebration-stars { position: absolute; inset: 0; pointer-events: none; color: var(--purple); }
+    .celebration-stars span { position: absolute; }
+    .celebration-stars span:nth-child(1) { top: 24px; left: 18%; font-size: 24px; }
+    .celebration-stars span:nth-child(2) { top: 70px; left: 10%; font-size: 14px; color: #d184a9; }
+    .celebration-stars span:nth-child(3) { top: 30px; right: 18%; font-size: 22px; color: #d184a9; }
+    .celebration-stars span:nth-child(4) { top: 77px; right: 10%; font-size: 14px; }
+    .result-badge {
+      display: inline-block; margin: 14px 0 0; padding: 4px 12px;
+      border: 1px solid var(--border); border-radius: 20px;
+      background: var(--surface); color: var(--purple); font-size: 12px; font-weight: 800;
+    }
+    @media (prefers-reduced-motion: no-preference) {
+      .celebration-stars { animation: star-twinkle 2s ease-in-out infinite alternate; }
+    }
+    .footer { margin: 19px 0 0; color: var(--muted); font-size: 11px; text-align: center; letter-spacing: .04em; }
+    [hidden] { display: none !important; }
+    @keyframes star-twinkle { from { opacity: .55; } to { opacity: 1; } }
+    @keyframes shake { 0%, 100% { transform: translateX(0); } 20%, 60% { transform: translateX(-6px); } 40%, 80% { transform: translateX(6px); } }
+    @keyframes celebrate { 0% { transform: scale(.97); } 55% { transform: scale(1.025); } 100% { transform: scale(1); } }
+    @media (prefers-reduced-motion: reduce) { *, *::before, *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; } }
+    @media (max-width: 480px) {
+      .page { padding-top: 22px; }
+      .hero { min-height: 175px; padding: 25px 22px; }
+      .hero-copy { max-width: 230px; }
+      .hero-art { right: -55px; top: -5px; transform: scale(.85); }
+      .body { padding: 24px 22px 26px; }
+      .edition { font-size: 10px; }
+    }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <header class="topbar">
+      <div class="brand"><span class="brand-icon" aria-hidden="true">✦</span> SPACE QUEST</div>
+      <span class="edition">宇宙探査クイズ</span>
+    </header>
+    <section class="card" aria-labelledby="page-title">
+      <div class="hero">
+        <div class="hero-copy">
+          <div class="eyebrow">READY FOR LIFTOFF?</div>
+          <h1 id="page-title">宇宙のふしぎに、<br>出発しよう。</h1>
+          <p>10の質問で、宇宙をめぐる小さな旅へ。</p>
+        </div>
+        <div class="hero-art" aria-hidden="true">
+          <div class="orbit"></div><div class="planet"></div>
+          <span class="star one">✦</span><span class="star two">✦</span><span class="star three">✧</span>
+        </div>
+      </div>
+      <div class="body">
+        <div class="status">
+          <span id="progress-label">QUESTION <strong>01</strong> / 10</span>
+          <span class="score">✦ &nbsp; SCORE <strong id="score">0</strong></span>
+        </div>
+        <div class="progress" id="progress" role="progressbar" aria-label="回答の進捗" aria-valuemin="0" aria-valuemax="10" aria-valuenow="0">
+          <div class="progress-fill" id="progress-fill"></div>
+        </div>
+        <div id="quiz">
+          <div class="question-label" id="question-label"></div>
+          <h2 id="question"></h2>
+          <div class="answers" id="answers"></div>
+          <div id="feedback" class="feedback" role="status" hidden></div>
+          <button class="next" id="next" type="button" hidden>次の問題へ <span aria-hidden="true">→</span></button>
+        </div>
+        <div id="result" class="result" aria-live="polite" hidden>
+          <div class="celebration-stars" id="celebration-stars" aria-hidden="true" hidden>
+            <span>✦</span><span>✧</span><span>✦</span><span>✧</span>
+          </div>
+          <div class="result-emoji" id="result-emoji" aria-hidden="true"></div>
+          <div class="result-badge" id="result-badge" hidden>✨ すばらしい成果！</div>
+          <span class="question-label">MISSION COMPLETE</span>
+          <h2 id="result-title"></h2>
+          <p id="result-message"></p>
+          <div class="result-score"><span>正解数 </span><span id="result-score" style="font-size: inherit; color: inherit"></span><span> / 10</span></div>
+          <button class="next" id="restart" type="button">もう一度挑戦する <span aria-hidden="true">↗</span></button>
+        </div>
+      </div>
+    </section>
+    <p class="footer">KEEP LOOKING UP &nbsp; ✦ &nbsp; 宇宙への好奇心を、いつまでも。</p>
+  </main>
+  <script>
+    const questions = [
+      { question: "人類が初めて月に降り立ったのは、どのミッション？", choices: ["アポロ11号", "ボイジャー1号", "アルテミス1号", "スプートニク1号"], answer: 0, explanation: "1969年、アポロ11号の宇宙飛行士が人類初の月面着陸を果たしました。" },
+      { question: "「赤い惑星」と呼ばれているのは？", choices: ["金星", "火星", "木星", "水星"], answer: 1, explanation: "火星の地表に含まれる酸化鉄が、赤っぽく見える理由です。" },
+      { question: "太陽系でいちばん大きな惑星は？", choices: ["土星", "海王星", "木星", "地球"], answer: 2, explanation: "木星は太陽系最大の惑星。地球の直径のおよそ11倍あります。" },
+      { question: "世界初の人工衛星の名前は？", choices: ["スプートニク1号", "ハッブル", "はやぶさ", "ルナ2号"], answer: 0, explanation: "スプートニク1号は1957年にソ連から打ち上げられました。" },
+      { question: "国際宇宙ステーションの略称は？", choices: ["NASA", "ISS", "ESA", "JAXA"], answer: 1, explanation: "ISSは International Space Station の略称です。" },
+      { question: "小惑星リュウグウの試料を地球に持ち帰った探査機は？", choices: ["あかつき", "かぐや", "はやぶさ2", "みちびき"], answer: 2, explanation: "はやぶさ2はリュウグウを探査し、2020年に試料を地球へ届けました。" },
+      { question: "太陽系で、特に大きく美しい環が有名な惑星は？", choices: ["火星", "水星", "地球", "土星"], answer: 3, explanation: "土星の環は、主に氷や岩の小さな粒でできています。" },
+      { question: "宇宙から届く光を観測するために打ち上げられた望遠鏡は？", choices: ["ジェイムズ・ウェッブ宇宙望遠鏡", "国際宇宙ステーション", "アポロ月着陸船", "スペースシャトル"], answer: 0, explanation: "ジェイムズ・ウェッブ宇宙望遠鏡は主に赤外線で宇宙を観測します。" },
+      { question: "月が地球のまわりを一周する時間は、およそどのくらい？", choices: ["約1日", "約7日", "約27日", "約365日"], answer: 2, explanation: "月が恒星を基準に地球を一周する周期は、約27.3日です。" },
+      { question: "太陽に最も近い惑星は？", choices: ["金星", "水星", "地球", "火星"], answer: 1, explanation: "水星は太陽に最も近く、太陽系で最も小さい惑星です。" }
+    ];
+
+    const $ = id => document.getElementById(id);
+    let current = 0;
+    let score = 0;
+    let answered = false;
+
+    function updateStatus(completed) {
+      $("score").textContent = score;
+      $("progress-fill").style.width = `${completed / questions.length * 100}%`;
+      $("progress").setAttribute("aria-valuenow", completed);
+    }
+
+    function renderQuestion() {
+      answered = false;
+      const item = questions[current];
+      const number = String(current + 1).padStart(2, "0");
+      $("progress-label").innerHTML = `QUESTION <strong>${number}</strong> / ${questions.length}`;
+      $("question-label").textContent = `QUESTION ${number}  /  ${questions.length}`;
+      $("question").textContent = item.question;
+      $("answers").replaceChildren();
+      $("feedback").hidden = true;
+      $("next").hidden = true;
+      item.choices.forEach((choice, index) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "answer";
+        const letter = document.createElement("span");
+        letter.className = "answer-letter";
+        letter.textContent = String.fromCharCode(65 + index);
+        const text = document.createElement("span");
+        text.className = "answer-text";
+        text.textContent = choice;
+        button.append(letter, text);
+        button.addEventListener("click", () => selectAnswer(index));
+        $("answers").append(button);
+      });
+      updateStatus(current);
+    }
+
+    function selectAnswer(selected) {
+      if (answered) return;
+      answered = true;
+      const item = questions[current];
+      const correct = selected === item.answer;
+      if (correct) score++;
+      const buttons = $("answers").querySelectorAll("button");
+      buttons.forEach((button, index) => {
+        button.disabled = true;
+        if (index === selected) button.classList.add("selected");
+        if (index === item.answer || (index === selected && !correct)) {
+          const isCorrect = index === item.answer;
+          button.classList.add(isCorrect ? "correct" : "incorrect");
+          const mark = document.createElement("span");
+          mark.className = "answer-mark";
+          mark.textContent = isCorrect ? "✓" : "×";
+          mark.setAttribute("aria-label", isCorrect ? "正解" : "不正解");
+          button.append(mark);
+        }
+      });
+      const feedback = $("feedback");
+      feedback.className = `feedback ${correct ? "correct" : "incorrect"}`;
+      feedback.replaceChildren();
+      const heading = document.createElement("strong");
+      heading.textContent = correct ? "✦ 正解！" : "惜しい！";
+      const explanation = document.createElement("p");
+      explanation.textContent = item.explanation;
+      feedback.append(heading, explanation);
+      feedback.hidden = false;
+      $("next").textContent = current === questions.length - 1 ? "結果を見る →" : "次の問題へ →";
+      $("next").hidden = false;
+      updateStatus(current + 1);
+    }
+
+    $("next").addEventListener("click", () => {
+      if (!answered) return;
+      current++;
+      if (current < questions.length) {
+        renderQuestion();
+      } else {
+        $("quiz").hidden = true;
+        $("result").hidden = false;
+        const highScore = score >= 8;
+        $("result").classList.toggle("celebration", highScore);
+        $("celebration-stars").hidden = !highScore;
+        $("result-badge").hidden = !highScore;
+        $("progress-label").textContent = "ALL QUESTIONS COMPLETE";
+        $("result-score").textContent = score;
+        $("result-emoji").textContent = score === 10 ? "🏆" : score >= 7 ? "🚀" : score >= 4 ? "🌟" : "🌱";
+        $("result-title").textContent = score === 10 ? "パーフェクト！" : score >= 7 ? "すばらしい探査！" : score >= 4 ? "ナイスチャレンジ！" : "宇宙の旅はこれから！";
+        $("result-message").textContent = score === 10 ? "あなたは宇宙探査のエキスパート！" : highScore ? "見事な活躍！宇宙への好奇心が輝いています。" : "宇宙には、まだまだたくさんの発見が待っています。";
+        $("restart").focus();
+      }
+    });
+
+    $("restart").addEventListener("click", () => {
+      current = 0;
+      score = 0;
+      $("result").hidden = true;
+      $("quiz").hidden = false;
+      renderQuestion();
+      $("answers").querySelector("button").focus();
+    });
+
+    renderQuestion();
+  </script>
+</body>
+</html>
