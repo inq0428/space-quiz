@@ -235,6 +235,7 @@
           <h2 id="result-title"></h2>
           <p id="result-message"></p>
           <div class="result-score"><span>正解数 </span><span id="result-score" style="font-size: inherit; color: inherit"></span><span> / <span id="result-total">10</span></span></div>
+          <button class="next" id="review-incorrect" type="button" hidden>間違えた問題を復習する <span aria-hidden="true">↗</span></button>
           <button class="next" id="restart" type="button">もう一度挑戦する <span aria-hidden="true">↗</span></button>
         </div>
       </div>
@@ -260,6 +261,9 @@
     let current = 0;
     let score = 0;
     let answered = false;
+    let missedQuestions = [];
+    let isReviewing = false;
+    let reviewIndex = 0;
 
     function updateStatus(completed) {
       $("score").textContent = score;
@@ -294,13 +298,83 @@
       updateStatus(current);
     }
 
+    function renderReviewQuestion() {
+      const item = missedQuestions[reviewIndex];
+      const number = String(reviewIndex + 1).padStart(2, "0");
+      $("progress-label").innerHTML = `REVIEW <strong>${number}</strong> / ${missedQuestions.length}`;
+      $("question-label").textContent = `REVIEW ${number}  /  ${missedQuestions.length}`;
+      $("question").textContent = item.question;
+      $("answers").replaceChildren();
+      item.choices.forEach((choice, index) => {
+        const button = document.createElement("button");
+        button.type = "button";
+        button.className = "answer";
+        button.disabled = true;
+        const letter = document.createElement("span");
+        letter.className = "answer-letter";
+        letter.textContent = String.fromCharCode(65 + index);
+        const text = document.createElement("span");
+        text.className = "answer-text";
+        text.textContent = choice;
+        button.append(letter, text);
+        if (index === item.answer) {
+          button.classList.add("correct");
+          const mark = document.createElement("span");
+          mark.className = "answer-mark";
+          mark.textContent = "✓";
+          mark.setAttribute("aria-label", "正解");
+          button.append(mark);
+        }
+        $("answers").append(button);
+      });
+      $("feedback").className = "feedback correct";
+      $("feedback").replaceChildren();
+      const heading = document.createElement("strong");
+      heading.textContent = "正解はこちら";
+      const explanation = document.createElement("p");
+      explanation.textContent = item.explanation;
+      $("feedback").append(heading, explanation);
+      $("feedback").hidden = false;
+      $("next").textContent = reviewIndex === missedQuestions.length - 1 ? "結果に戻る →" : "次の復習問題へ →";
+      $("next").hidden = false;
+      updateStatus(reviewIndex);
+    }
+
+    function finishReview() {
+      isReviewing = false;
+      $("quiz").hidden = true;
+      $("result").hidden = false;
+      $("progress").setAttribute("aria-label", "回答の進捗");
+      $("progress").setAttribute("aria-valuemax", activeQuestions.length);
+      $("progress-label").textContent = "ALL QUESTIONS COMPLETE";
+      updateStatus(activeQuestions.length);
+      $("review-incorrect").focus();
+    }
+
+    function startReview() {
+      if (missedQuestions.length === 0) return;
+      isReviewing = true;
+      reviewIndex = 0;
+      $("result").hidden = true;
+      $("quiz-status").hidden = false;
+      $("quiz").hidden = false;
+      $("progress").setAttribute("aria-label", "復習の進捗");
+      $("progress").setAttribute("aria-valuemax", missedQuestions.length);
+      renderReviewQuestion();
+      $("next").focus();
+    }
+
     function startQuiz(questionSet) {
       activeQuestions = questionSet;
       current = 0;
       score = 0;
+      missedQuestions = [];
+      isReviewing = false;
       $("mode-selection").hidden = true;
       $("quiz-status").hidden = false;
       $("quiz").hidden = false;
+      $("result").hidden = true;
+      $("progress").setAttribute("aria-label", "回答の進捗");
       $("progress").setAttribute("aria-valuemax", activeQuestions.length);
       $("result-total").textContent = activeQuestions.length;
       renderQuestion();
@@ -308,11 +382,12 @@
     }
 
     function selectAnswer(selected) {
-      if (answered) return;
+      if (answered || isReviewing) return;
       answered = true;
       const item = activeQuestions[current];
       const correct = selected === item.answer;
       if (correct) score++;
+      else missedQuestions.push(item);
       const buttons = $("answers").querySelectorAll("button");
       buttons.forEach((button, index) => {
         button.disabled = true;
@@ -342,6 +417,12 @@
     }
 
     $("next").addEventListener("click", () => {
+      if (isReviewing) {
+        reviewIndex++;
+        if (reviewIndex < missedQuestions.length) renderReviewQuestion();
+        else finishReview();
+        return;
+      }
       if (!answered) return;
       current++;
       if (current < activeQuestions.length) {
@@ -349,6 +430,7 @@
       } else {
         $("quiz").hidden = true;
         $("result").hidden = false;
+        $("review-incorrect").hidden = missedQuestions.length === 0;
         const scoreRatio = score / activeQuestions.length;
         const highScore = scoreRatio >= 0.8;
         $("result").classList.toggle("celebration", highScore);
@@ -368,15 +450,9 @@
 
     $("start-standard").addEventListener("click", () => startQuiz(questions));
     $("start-quick").addEventListener("click", () => startQuiz(questions.slice(0, 3)));
+    $("review-incorrect").addEventListener("click", startReview);
 
-    $("restart").addEventListener("click", () => {
-      current = 0;
-      score = 0;
-      $("result").hidden = true;
-      $("quiz").hidden = false;
-      renderQuestion();
-      $("answers").querySelector("button").focus();
-    });
+    $("restart").addEventListener("click", () => startQuiz(activeQuestions));
 
     renderQuestion();
   </script>
